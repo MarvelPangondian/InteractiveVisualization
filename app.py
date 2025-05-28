@@ -16,88 +16,71 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Generate dummy data
+# Load real data from CSV
 @st.cache_data
-def generate_data(n_samples=100):
-    np.random.seed(42)
-    
-    # Generate realistic and slightly correlated data
-    study_hours = np.clip(np.random.normal(6, 1.5, n_samples), 1, 12)
-    sleep_hours = np.clip(np.random.normal(7, 1, n_samples), 4, 10)
-    
-    # Less study typically means more social/extracurricular
-    extracurricular_hours = np.clip(np.random.normal(2, 1, n_samples) + (8 - study_hours) * 0.2, 0, 6)
-    social_hours = np.clip(np.random.normal(3, 1.2, n_samples) + (8 - study_hours) * 0.3, 0, 8)
-    
-    physical_hours = np.clip(np.random.normal(1.5, 0.8, n_samples), 0, 4)
-    
-    # GPA has positive correlation with study hours and sleep hours
-    gpa_base = 2.5 + study_hours * 0.15 + sleep_hours * 0.05 - 0.1 * (np.random.normal(0, 0.5, n_samples))
-    gpa = np.clip(gpa_base, 0, 4.0).round(2)
-    
-    # Stress level is related to study hours and inversely to sleep
-    stress_prob = (study_hours / 12) * 0.7 + (1 - (sleep_hours / 10)) * 0.3 + np.random.normal(0, 0.15, n_samples)
-    stress_level = []
-    for prob in stress_prob:
-        if prob < 0.4:
-            stress_level.append("Low")
-        elif prob < 0.7:
-            stress_level.append("Moderate")
-        else:
-            stress_level.append("High")
-    
-    # Work-life balance is a function of all factors with added random variation to ensure diversity
-    balance_score = (
-        (1 - (study_hours / 12) * 0.3) +  # Less study time improves balance, but only slightly
-        (sleep_hours / 10) * 0.3 +        # More sleep improves balance
-        (extracurricular_hours / 6) * 0.15 + # Some extracurricular activities improve balance
-        (social_hours / 8) * 0.15 +       # Social time improves balance
-        (physical_hours / 4) * 0.1 +      # Physical activity improves balance
-        np.random.normal(0, 0.05, n_samples)  # Add random variation to ensure range of values
-    ) / 1.0
-    balance_score = np.clip(balance_score, 0, 1).round(2)
-    
-    # Make absolutely sure we have at least two different balance scores
-    if len(np.unique(balance_score)) == 1:
-        # If all scores are the same, modify at least one
-        balance_score[0] = min(1.0, balance_score[0] + 0.1)
-    
-    # Create DataFrame
-    df = pd.DataFrame({
-        'Study_Hours_Per_Day': study_hours.round(1),
-        'Sleep_Hours_Per_Day': sleep_hours.round(1),
-        'Extracurricular_Hours_Per_Day': extracurricular_hours.round(1),
-        'Social_Hours_Per_Day': social_hours.round(1),
-        'Physical_Activity_Hours_Per_Day': physical_hours.round(1),
-        'GPA': gpa,
-        'Stress_Level': stress_level,
-        'Work_Life_Balance_Score': balance_score
-    })
-    
-    # Add student ID for reference
-    df['Student_ID'] = [f'S{i+1:03d}' for i in range(n_samples)]
-    
-    return df
+def load_data():
+    try:
+        # Load the dataset
+        df = pd.read_csv('dataset.csv')
+        
+        # Add student ID for reference if not present
+        if 'Student_ID' not in df.columns:
+            df['Student_ID'] = [f'S{i+1:04d}' for i in range(len(df))]
+        
+        # Make sure stress level is properly categorized
+        if 'Stress_Level' in df.columns:
+            # Ensure values are properly formatted
+            if df['Stress_Level'].dtype != 'object':
+                # Map numerical values to string categories if needed
+                df['Stress_Level'] = df['Stress_Level'].astype(str)
+            
+        # Log basic dataset info
+        st.sidebar.info(f"Loaded dataset with {df.shape[0]} students and {df.shape[1]} variables")
+        
+        return df
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        # Return a small sample dataset as fallback
+        sample_df = pd.DataFrame({
+            'Study_Hours_Per_Day': [6.0, 7.5, 5.2, 8.1, 4.5],
+            'Sleep_Hours_Per_Day': [7.0, 6.5, 8.0, 5.5, 7.5],
+            'Extracurricular_Hours_Per_Day': [2.0, 1.5, 3.0, 1.0, 2.5],
+            'Social_Hours_Per_Day': [3.0, 2.5, 4.0, 2.0, 3.5],
+            'Physical_Activity_Hours_Per_Day': [1.5, 1.0, 2.0, 0.5, 1.0],
+            'GPA': [3.5, 3.8, 3.2, 3.9, 3.0],
+            'Stress_Level': ['Moderate', 'High', 'Low', 'High', 'Low'],
+            'Work_Life_Balance_Score': [0.7, 0.6, 0.8, 0.5, 0.7],
+            'Student_ID': ['S0001', 'S0002', 'S0003', 'S0004', 'S0005'],
+        })
+        return sample_df
 
-# Generate the data
-df = generate_data(150)
+# Load the data from CSV
+df = load_data()
 
 # Sidebar for filtering
 st.sidebar.title("Student Life Balance Dashboard")
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3771/3771417.png", width=100)
+
+# Add file uploader (optional - for updating the dataset)
+uploaded_file = st.sidebar.file_uploader("Upload a different dataset (optional)", type="csv")
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    st.sidebar.success(f"Successfully loaded new dataset with {df.shape[0]} entries")
+
+# Display dataset overview in sidebar
+st.sidebar.write(f"Dataset size: {df.shape[0]} students")
 
 # Add number of students slider
 num_students = st.sidebar.slider("Number of Students to Display", 
                               min_value=10, 
-                              max_value=len(df), 
-                              value=50,
-                              step=5)
+                              max_value=min(500, len(df)), 
+                              value=min(50, len(df)),
+                              step=10)
 
 # Filtering options
 st.sidebar.subheader("Filters")
 
 # Stress level filter (multiselect)
-stress_options = ['Low', 'Moderate', 'High']
+stress_options = sorted(df['Stress_Level'].unique().tolist())
 selected_stress = st.sidebar.multiselect(
     "Stress Level",
     options=stress_options,
@@ -164,8 +147,8 @@ with col3:
 with col4:
     st.metric("Average Balance Score", f"{filtered_df['Work_Life_Balance_Score'].mean():.2f}")
 
-# Create tabs for different visualizations
-tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Correlation Analysis", "Time Distribution", "Individual Students"])
+# Tabs for different analyses
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Overview", "Correlation Analysis", "Time Distribution", "Individual Students", "Data Explorer"])
 
 with tab1:
     st.subheader("Student Life Balance Overview")
@@ -200,6 +183,20 @@ with tab1:
                 color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"})
     fig.update_traces(textposition='inside', textinfo='percent+label')
     st.plotly_chart(fig, use_container_width=True)
+    
+    # Summary of averages by stress level
+    st.subheader("Averages by Stress Level")
+    stress_summary = filtered_df.groupby('Stress_Level')[['Study_Hours_Per_Day', 'Sleep_Hours_Per_Day', 
+                                                       'GPA', 'Work_Life_Balance_Score']].mean().reset_index()
+    
+    fig = px.bar(stress_summary.melt(id_vars=['Stress_Level'], 
+                                    value_vars=['Study_Hours_Per_Day', 'Sleep_Hours_Per_Day', 
+                                                'GPA', 'Work_Life_Balance_Score']),
+                x='Stress_Level', y='value', color='Stress_Level', facet_col='variable', 
+                color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"},
+                title="Key Metrics by Stress Level")
+    fig.update_layout(height=500)
+    st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
     st.subheader("Correlation Analysis")
@@ -232,33 +229,41 @@ with tab2:
                     color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"},
                     size_max=15)
     
-    fig.update_layout(height=600)
-    # Enable zoom by default in Plotly
-    fig.update_layout(dragmode='zoom')
+    # Add annotation explaining bubble size
+    fig.add_annotation(
+        x=0.02,
+        y=1.05,
+        xref="paper",
+        yref="paper",
+        text="Bubble size represents Work-Life Balance Score",
+        showarrow=False,
+        font=dict(size=12),
+        align="left",
+        bgcolor="rgba(255, 255, 255, 0.8)",
+        bordercolor="gray",
+        borderwidth=1,
+        borderpad=4
+    )
     
-    # Add trendline
-    add_trendline = st.checkbox("Show Trendline", value=True)
-    if add_trendline:
-        fig.update_layout(showlegend=True)
-        # Add trendline for each stress level
-        for stress in filtered_df['Stress_Level'].unique():
-            stress_df = filtered_df[filtered_df['Stress_Level'] == stress]
-            fig.add_trace(
-                go.Scatter(
-                    x=stress_df[x_var],
-                    y=stress_df[y_var],
-                    mode='lines',
-                    name=f'Trendline - {stress}',
-                    line=dict(width=2, dash='dash'),
-                    showlegend=True
-                )
-            )
+    fig.update_layout(
+        height=600,
+        dragmode='zoom',
+        legend=dict(
+            title="Stress Level",
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
     
     st.plotly_chart(fig, use_container_width=True)
     
     # Correlation matrix
     st.subheader("Correlation Matrix")
-    corr = filtered_df.drop(['Student_ID', 'Stress_Level'], axis=1).corr()
+    numeric_df = filtered_df.select_dtypes(include=['float64', 'int64'])
+    corr = numeric_df.corr()
     
     fig = px.imshow(corr, text_auto=True, aspect="auto",
                    color_continuous_scale='RdBu_r',
@@ -274,7 +279,7 @@ with tab3:
                 'Social_Hours_Per_Day', 'Physical_Activity_Hours_Per_Day']
     
     # Sample selector
-    sample_size = st.slider("Number of Students to Display", min_value=5, max_value=min(30, len(filtered_df)), value=10, step=1)
+    sample_size = st.slider("Number of Students to Display", min_value=5, max_value=min(30, len(filtered_df)), value=min(10, len(filtered_df)), step=1)
     
     # Sort options
     sort_by = st.selectbox(
@@ -283,66 +288,71 @@ with tab3:
         index=0
     )
     
-    sorted_df = filtered_df.sort_values(by=sort_by, ascending=False).head(sample_size)
-    
-    # Create stacked bar chart for time allocation
-    fig = go.Figure()
-    
-    for col in time_cols:
-        fig.add_trace(go.Bar(
-            y=sorted_df['Student_ID'],
-            x=sorted_df[col],
-            name=col.replace('_', ' ').replace('Per Day', ''),
-            orientation='h'
-        ))
-    
-    fig.update_layout(
-        barmode='stack',
-        title="Daily Time Distribution (Hours)",
-        xaxis_title="Hours per Day",
-        yaxis_title="Student ID",
-        height=600,
-        legend=dict(x=0.7, y=1.1, orientation='h')
-    )
-    
-    # Add a line for 24 hours
-    fig.add_shape(
-        type="line",
-        x0=24, y0=-0.5,
-        x1=24, y1=len(sorted_df)-0.5,
-        line=dict(color="red", width=2, dash="dash")
-    )
-    
-    fig.add_annotation(
-        x=24, y=len(sorted_df)/2,
-        text="24 Hours",
-        showarrow=True,
-        arrowhead=1,
-        ax=30,
-        ay=0
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Pie chart showing average time distribution
-    avg_time = sorted_df[time_cols].mean().reset_index()
-    avg_time.columns = ['Activity', 'Hours']
-    
-    # Calculate remaining hours
-    total_hours = avg_time['Hours'].sum()
-    if total_hours < 24:
-        avg_time = pd.concat([avg_time, pd.DataFrame({'Activity': ['Other'], 'Hours': [24 - total_hours]})], ignore_index=True)
-    
-    avg_time['Activity'] = avg_time['Activity'].str.replace('_', ' ').str.replace('Per Day', '')
-    
-    fig = px.pie(avg_time, values='Hours', names='Activity', 
-                title='Average Daily Time Distribution',
-                hole=0.4)
-    
-    fig.update_traces(textposition='inside', textinfo='percent+label')
-    fig.update_layout(height=500)
-    
-    st.plotly_chart(fig, use_container_width=True)
+    # Handle case where filtered_df might be empty
+    if len(filtered_df) > 0:
+        sorted_df = filtered_df.sort_values(by=sort_by, ascending=False).head(sample_size)
+        
+        # Create stacked bar chart for time allocation
+        fig = go.Figure()
+        
+        for col in time_cols:
+            if col in sorted_df.columns:  # Make sure column exists
+                fig.add_trace(go.Bar(
+                    y=sorted_df['Student_ID'],
+                    x=sorted_df[col],
+                    name=col.replace('_', ' ').replace('Per Day', ''),
+                    orientation='h'
+                ))
+        
+        fig.update_layout(
+            barmode='stack',
+            title="Daily Time Distribution (Hours)",
+            xaxis_title="Hours per Day",
+            yaxis_title="Student ID",
+            height=600,
+            legend=dict(x=0.7, y=1.1, orientation='h')
+        )
+        
+        # Add a line for 24 hours
+        fig.add_shape(
+            type="line",
+            x0=24, y0=-0.5,
+            x1=24, y1=len(sorted_df)-0.5,
+            line=dict(color="red", width=2, dash="dash")
+        )
+        
+        fig.add_annotation(
+            x=24, y=len(sorted_df)/2,
+            text="24 Hours",
+            showarrow=True,
+            arrowhead=1,
+            ax=30,
+            ay=0
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Pie chart showing average time distribution
+        avg_time = sorted_df[time_cols].mean().reset_index()
+        avg_time.columns = ['Activity', 'Hours']
+        
+        # Calculate remaining hours
+        total_hours = avg_time['Hours'].sum()
+        if total_hours < 24:
+            avg_time = pd.concat([avg_time, pd.DataFrame({'Activity': ['Other'], 'Hours': [24 - total_hours]})], ignore_index=True)
+        
+        avg_time['Activity'] = avg_time['Activity'].str.replace('_', ' ').str.replace('Per Day', '')
+        
+        fig = px.pie(avg_time, values='Hours', names='Activity', 
+                    title='Average Daily Time Distribution',
+                    hole=0.4)
+        
+        fig.update_traces(textposition='inside', textinfo='percent+label')
+        fig.update_layout(height=500)
+        
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No data available with current filter settings. Please adjust your filters.")
 
 with tab4:
     st.subheader("Individual Student Profiles")
@@ -395,61 +405,110 @@ with tab4:
             radar_cols = ['Study_Hours_Per_Day', 'Sleep_Hours_Per_Day', 'Extracurricular_Hours_Per_Day', 
                          'Social_Hours_Per_Day', 'Physical_Activity_Hours_Per_Day', 'GPA', 'Work_Life_Balance_Score']
             
-            # Normalize values for radar chart
-            max_vals = {
-                'Study_Hours_Per_Day': 12,
-                'Sleep_Hours_Per_Day': 10,
-                'Extracurricular_Hours_Per_Day': 6,
-                'Social_Hours_Per_Day': 8,
-                'Physical_Activity_Hours_Per_Day': 4,
-                'GPA': 4,
-                'Work_Life_Balance_Score': 1
-            }
+            # Filter for columns that exist in the dataset
+            radar_cols = [col for col in radar_cols if col in student_data.index]
             
-            radar_values = [student_data[col] / max_vals[col] for col in radar_cols]
-            radar_labels = [col.replace('_', ' ').replace('Per Day', '') for col in radar_cols]
-            
-            fig = go.Figure()
-            
-            fig.add_trace(go.Scatterpolar(
-                r=radar_values,
-                theta=radar_labels,
-                fill='toself',
-                name=student_data['Student_ID']
-            ))
-            
-            fig.update_layout(
-                polar=dict(
-                    radialaxis=dict(
-                        visible=True,
-                        range=[0, 1]
-                    )
-                ),
-                showlegend=False,
-                title="Student Profile (Normalized)"
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
+            if radar_cols:
+                # Find the maximum hours across all hour columns in the entire dataset
+                hour_columns = [col for col in filtered_df.columns if 'Hours_Per_Day' in col]
+                if hour_columns:
+                    # Get the global maximum hours across all types of activities
+                    max_hours = filtered_df[hour_columns].values.max()
+                else:
+                    max_hours = 12.0  # Fallback if no hour columns found
+                
+                # Apply consistent normalization rules for each type of data
+                radar_values = []
+                radar_text = []
+                
+                for col in radar_cols:
+                    value = student_data[col]
+                    
+                    # Apply different normalization based on data type
+                    if 'Hours_Per_Day' in col:
+                        # Normalize all hour columns by the same global maximum
+                        normalized_value = value / max_hours
+                        radar_text.append(f"{value:.1f}h<br>({normalized_value:.0%})")
+                    elif col == 'GPA':
+                        # For GPA, normalize by dividing by 4
+                        normalized_value = value / 4.0
+                        radar_text.append(f"{value:.2f}<br>({normalized_value:.0%})")
+                    elif col == 'Work_Life_Balance_Score':
+                        # For Work-life balance, normalize by dividing by 1
+                        normalized_value = value / 1.0
+                        radar_text.append(f"{value:.2f}<br>({normalized_value:.0%})")
+                    else:
+                        # For any other metric, use a safe normalization
+                        max_val = filtered_df[col].max()
+                        normalized_value = value / max_val
+                        radar_text.append(f"{value:.2f}<br>({normalized_value:.0%})")
+                    
+                    radar_values.append(normalized_value)
+                        
+                radar_labels = [col.replace('_', ' ').replace('Per Day', '') for col in radar_cols]
+                
+                fig = go.Figure()
+                
+                fig.add_trace(go.Scatterpolar(
+                    r=radar_values,
+                    theta=radar_labels,
+                    fill='toself',
+                    name=student_data['Student_ID'],
+                    text=radar_text,
+                    hoverinfo="text+name"
+                ))
+                
+                # Set radial axis to show percentages
+                fig.update_layout(
+                    polar=dict(
+                        radialaxis=dict(
+                            visible=True,
+                            range=[0, 1],
+                            tickvals=[0, 0.25, 0.5, 0.75, 1],
+                            ticktext=["0%", "25%", "50%", "75%", "100%"]
+                        )
+                    ),
+                    showlegend=False,
+                    title="Student Profile (Normalized)"
+                )
+                
+                # Add annotation explaining normalization
+                normalization_text = f"Hours normalized to {max_hours:.1f}hr max | GPA to 4.0 max | Work-Life Balance to 1.0 max"
+                fig.add_annotation(
+                    x=0.5,
+                    y=-0.15,
+                    xref="paper",
+                    yref="paper",
+                    text=normalization_text,
+                    showarrow=False,
+                    font=dict(size=10),
+                    align="center"
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
         
         # Time allocation for selected student
         st.subheader("Time Allocation")
         
-        time_data = student_data[time_cols].reset_index()
-        time_data.columns = ['Category', 'Hours']
-        time_data['Category'] = time_data['Category'].apply(lambda x: x.replace('_', ' ').replace('Per Day', ''))
-        
-        # Calculate remaining hours
-        total_hours = time_data['Hours'].sum()
-        if total_hours < 24:
-            time_data = pd.concat([time_data, pd.DataFrame({'Category': ['Other'], 'Hours': [24 - total_hours]})], ignore_index=True)
-        
-        fig = px.bar(time_data, x='Category', y='Hours', 
-                    title="Daily Time Allocation",
-                    color='Category',
-                    text_auto=True)
-        
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
+        time_columns = [col for col in time_cols if col in student_data.index]
+        if time_columns:
+            time_data = pd.DataFrame({
+                'Category': [col.replace('_', ' ').replace('Per Day', '') for col in time_columns],
+                'Hours': [student_data[col] for col in time_columns]
+            })
+            
+            # Calculate remaining hours
+            total_hours = time_data['Hours'].sum()
+            if total_hours < 24:
+                time_data = pd.concat([time_data, pd.DataFrame({'Category': ['Other'], 'Hours': [24 - total_hours]})], ignore_index=True)
+            
+            fig = px.bar(time_data, x='Category', y='Hours', 
+                        title="Daily Time Allocation",
+                        color='Category',
+                        text_auto=True)
+            
+            fig.update_layout(height=400)
+            st.plotly_chart(fig, use_container_width=True)
         
         # Display peer comparison
         st.subheader("Peer Comparison")
@@ -500,12 +559,20 @@ with tab4:
                         title="Work-Life Balance vs. GPA",
                         color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"})
         
-        # Highlight selected student
+        # Highlight selected student with a high contrast marker
         fig.add_trace(go.Scatter(
             x=[student_data['Work_Life_Balance_Score']],
             y=[student_data['GPA']],
             mode='markers',
-            marker=dict(size=15, color='black', symbol='circle-open'),
+            marker=dict(
+                size=18, 
+                color='white',  # White border for contrast
+                line=dict(
+                    color='lime',  # Bright color for visibility against dark background
+                    width=3
+                ),
+                symbol='circle-open'
+            ),
             name=selected_student
         ))
         
@@ -513,6 +580,71 @@ with tab4:
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("No students match the current filter criteria. Please adjust your filters.")
+
+with tab5:
+    st.subheader("Data Explorer")
+    
+    # Show a sample of the data
+    st.write("### Data Sample")
+    
+    # Column selector for the data viewer
+    all_columns = df.columns.tolist()
+    selected_columns = st.multiselect(
+        "Select columns to view",
+        options=all_columns,
+        default=all_columns[:6]  # Show first 6 columns by default
+    )
+    
+    # Filter data based on selected columns
+    if selected_columns:
+        st.dataframe(filtered_df[selected_columns].head(num_students))
+    else:
+        st.dataframe(filtered_df.head(num_students))
+    
+    # Data summary
+    st.write("### Data Summary")
+    
+    # Summary statistics
+    st.write("#### Summary Statistics")
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+    if numeric_columns:
+        summary_stats = filtered_df[numeric_columns].describe()
+        st.dataframe(summary_stats)
+    
+    # Histogram for selected feature
+    st.write("#### Distribution of Selected Feature")
+    hist_column = st.selectbox(
+        "Select column for histogram",
+        options=numeric_columns,
+        index=0
+    )
+    
+    fig = px.histogram(
+        filtered_df, 
+        x=hist_column,
+        color="Stress_Level",
+        marginal="box",
+        title=f"Distribution of {hist_column}",
+        color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"}
+    )
+    fig.update_layout(height=500)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Download data button
+    st.write("### Download Filtered Data")
+    
+    @st.cache_data
+    def convert_df_to_csv(df):
+        return df.to_csv(index=False).encode('utf-8')
+    
+    csv = convert_df_to_csv(filtered_df)
+    st.download_button(
+        "Download CSV",
+        csv,
+        "filtered_student_data.csv",
+        "text/csv",
+        key='download-csv'
+    )
 
 # Footer
 st.markdown("---")

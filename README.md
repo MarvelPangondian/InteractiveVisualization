@@ -4,6 +4,8 @@
 
 1. Create Environment:
 
+    MAKE SURE PAKE VERSI Python 3.10.16
+
 - Python venv:
 
     `*idk, aku pakenya conda`

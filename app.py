@@ -34,9 +34,6 @@ def load_data():
                 # Map numerical values to string categories if needed
                 df['Stress_Level'] = df['Stress_Level'].astype(str)
             
-        # Log basic dataset info
-        st.sidebar.info(f"Loaded dataset with {df.shape[0]} students and {df.shape[1]} variables")
-        
         return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -60,19 +57,10 @@ df = load_data()
 # Sidebar for filtering
 st.sidebar.title("Student Life Balance Dashboard")
 
-# Add file uploader (optional - for updating the dataset)
-uploaded_file = st.sidebar.file_uploader("Upload a different dataset (optional)", type="csv")
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.sidebar.success(f"Successfully loaded new dataset with {df.shape[0]} entries")
-
-# Display dataset overview in sidebar
-st.sidebar.write(f"Dataset size: {df.shape[0]} students")
-
 # Add number of students slider
 num_students = st.sidebar.slider("Number of Students to Display", 
                               min_value=10, 
-                              max_value=min(500, len(df)), 
+                              max_value=max(500, len(df)), 
                               value=min(50, len(df)),
                               step=10)
 
@@ -153,26 +141,6 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Overview", "Correlation Analysis", "Tim
 with tab1:
     st.subheader("Student Life Balance Overview")
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # GPA Distribution by Stress Level
-        fig = px.box(filtered_df, x="Stress_Level", y="GPA", 
-                    color="Stress_Level", 
-                    title="GPA Distribution by Stress Level",
-                    color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"})
-        fig.update_layout(height=400, boxmode='group', xaxis_title="Stress Level", yaxis_title="GPA")
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        # Work-Life Balance by Stress Level
-        fig = px.violin(filtered_df, x="Stress_Level", y="Work_Life_Balance_Score", 
-                        color="Stress_Level", box=True,
-                        title="Work-Life Balance Distribution by Stress Level",
-                        color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"})
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
-    
     # Stress Level Distribution
     stress_counts = filtered_df['Stress_Level'].value_counts().reset_index()
     stress_counts.columns = ['Stress_Level', 'Count']
@@ -184,6 +152,28 @@ with tab1:
     fig.update_traces(textposition='inside', textinfo='percent+label')
     st.plotly_chart(fig, use_container_width=True)
     
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # GPA Distribution by Stress Level
+        fig = px.box(filtered_df, x="Stress_Level", y="GPA", 
+                    color="Stress_Level", 
+                    title="GPA Distribution by Stress Level",
+                    color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"},
+                    category_orders={"Stress_Level": ["Low", "Moderate", "High"]})
+        fig.update_layout(height=400, boxmode='group', xaxis_title="Stress Level", yaxis_title="GPA")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Work-Life Balance by Stress Level
+        fig = px.violin(filtered_df, x="Stress_Level", y="Work_Life_Balance_Score", 
+                        color="Stress_Level", box=True,
+                        title="Work-Life Balance Distribution by Stress Level",
+                        color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"},
+                        category_orders={"Stress_Level": ["Low", "Moderate", "High"]})
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
+    
     # Summary of averages by stress level
     st.subheader("Averages by Stress Level")
     stress_summary = filtered_df.groupby('Stress_Level')[['Study_Hours_Per_Day', 'Sleep_Hours_Per_Day', 
@@ -194,6 +184,7 @@ with tab1:
                                                 'GPA', 'Work_Life_Balance_Score']),
                 x='Stress_Level', y='value', color='Stress_Level', facet_col='variable', 
                 color_discrete_map={"Low": "green", "Moderate": "gold", "High": "red"},
+                category_orders={"Stress_Level": ["Low", "Moderate", "High"]},
                 title="Key Metrics by Stress Level")
     fig.update_layout(height=500)
     st.plotly_chart(fig, use_container_width=True)
@@ -239,10 +230,10 @@ with tab2:
         showarrow=False,
         font=dict(size=12),
         align="left",
-        bgcolor="rgba(255, 255, 255, 0.8)",
-        bordercolor="gray",
-        borderwidth=1,
-        borderpad=4
+        # bgcolor="rgba(255, 255, 255, 0.8)",
+        # bordercolor="gray",
+        # borderwidth=1,
+        # borderpad=4
     )
     
     fig.update_layout(
@@ -278,9 +269,6 @@ with tab3:
     time_cols = ['Study_Hours_Per_Day', 'Sleep_Hours_Per_Day', 'Extracurricular_Hours_Per_Day', 
                 'Social_Hours_Per_Day', 'Physical_Activity_Hours_Per_Day']
     
-    # Sample selector
-    sample_size = st.slider("Number of Students to Display", min_value=5, max_value=min(30, len(filtered_df)), value=min(10, len(filtered_df)), step=1)
-    
     # Sort options
     sort_by = st.selectbox(
         "Sort Students By:",
@@ -290,47 +278,51 @@ with tab3:
     
     # Handle case where filtered_df might be empty
     if len(filtered_df) > 0:
-        sorted_df = filtered_df.sort_values(by=sort_by, ascending=False).head(sample_size)
+        sorted_df = filtered_df.sort_values(by=sort_by, ascending=False).head(num_students)
         
         # Create stacked bar chart for time allocation
         fig = go.Figure()
         
-        for col in time_cols:
+        # Define analogous color palette (blues to greens)
+        analogous_colors = [
+            '#1f77b4',  # Blue
+            '#17becf',  # Light Blue
+            '#2ca02c',  # Green
+            '#bcbd22',  # Yellow-green
+            '#ff7f0e'   # Orange
+        ]
+        
+        for i, col in enumerate(time_cols):
             if col in sorted_df.columns:  # Make sure column exists
                 fig.add_trace(go.Bar(
                     y=sorted_df['Student_ID'],
                     x=sorted_df[col],
                     name=col.replace('_', ' ').replace('Per Day', ''),
-                    orientation='h'
+                    orientation='h',
+                    marker_color=analogous_colors[i % len(analogous_colors)]
                 ))
         
         fig.update_layout(
             barmode='stack',
-            title="Daily Time Distribution (Hours)",
             xaxis_title="Hours per Day",
             yaxis_title="Student ID",
             height=600,
-            legend=dict(x=0.7, y=1.1, orientation='h')
+            legend=dict(x=0.5, y=1.1, orientation='h', xanchor='center'),
+            xaxis=dict(
+                tickmode='array',
+                tickvals=[0, 4, 8, 12, 16, 20, 24],
+                range=[0, 24]
+            ),
+            showlegend=True
         )
         
-        # Add a line for 24 hours
-        fig.add_shape(
-            type="line",
-            x0=24, y0=-0.5,
-            x1=24, y1=len(sorted_df)-0.5,
-            line=dict(color="red", width=2, dash="dash")
-        )
+        # Add centered title above the chart
+        st.markdown("<h3 style='text-align: center;'>Daily Time Distribution (Hours)</h3>", unsafe_allow_html=True)
         
-        fig.add_annotation(
-            x=24, y=len(sorted_df)/2,
-            text="24 Hours",
-            showarrow=True,
-            arrowhead=1,
-            ax=30,
-            ay=0
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
+        # Center the chart using columns
+        col1, col2, col3 = st.columns([0.5, 3, 0.5])
+        with col2:
+            st.plotly_chart(fig, use_container_width=True)
         
         # Pie chart showing average time distribution
         avg_time = sorted_df[time_cols].mean().reset_index()
@@ -345,7 +337,8 @@ with tab3:
         
         fig = px.pie(avg_time, values='Hours', names='Activity', 
                     title='Average Daily Time Distribution',
-                    hole=0.4)
+                    hole=0.4,
+                    color_discrete_sequence=['#1f77b4', '#17becf', '#2ca02c', '#bcbd22', '#ff7f0e', '#d62728'])
         
         fig.update_traces(textposition='inside', textinfo='percent+label')
         fig.update_layout(height=500)
@@ -504,8 +497,9 @@ with tab4:
             
             fig = px.bar(time_data, x='Category', y='Hours', 
                         title="Daily Time Allocation",
+                        text_auto=True,
                         color='Category',
-                        text_auto=True)
+                        color_discrete_sequence=['#1f77b4', '#17becf', '#2ca02c', '#bcbd22', '#ff7f0e', '#d62728'])
             
             fig.update_layout(height=400)
             st.plotly_chart(fig, use_container_width=True)

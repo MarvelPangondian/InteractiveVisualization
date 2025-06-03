@@ -291,7 +291,7 @@ if show_clusters and len(filtered_df) > 3:
     filtered_df["Cluster"] = [f"Group {i+1}" for i in clusters]
 
 # Main dashboard
-st.title("🎓 Student Life Balance Analytics Dashboard - V2")
+st.title("🎓 Student Life Balance Analytics Dashboard")
 st.markdown(
     f"**Analyzing data for {len(filtered_df)} students** | *Dataset: {len(df)} total students*"
 )

@@ -1,23 +1,70 @@
-# Data Visualization Project: Interactive Visualization
+# Project Name
+> Data Visualization Project: Interactive Visualization
 
-## Set Up
+## Table of Contents
+- [Project Name](#project-name)
+  - [Table of Contents](#table-of-contents)
+  - [General Information](#general-information)
+  - [Technologies Used](#technologies-used)
+  - [Setup](#setup)
+  - [Usage](#usage)
+  - [Project Status](#project-status)
+  - [Room for Improvement](#room-for-improvement)
+  - [Acknowledgements](#acknowledgements)
 
-1. Create Environment:
+## General Information
+- This project is to visualize 
 
-    MAKE SURE PAKE VERSI Python 3.10.16
+## Technologies Used
+- Python - version 3.10.16
 
-- Python venv:
+## Setup
+1. Clone the repository
 
-    `*idk, aku pakenya conda`
+    ```
+    git clone https://github.com/Zechtro/InteractiveVisualization.git
+    ```
+2. Change to root project.
 
-- Conda env:
+3. Create and activate a virtual environment
+    ```
+    python -m venv .venv
+    ./.venv/scripts/activate
+    ```
 
-    `conda create -p D:\some_path\streamlit-visdat python=3.10`
+4. Install Dependencies
+    ```
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    ```
 
-2. Install Dependencies:
+5. You're good to go !
 
-    `pip install -r requirements.txt`
+## Usage
+1. Run website 
 
-3. Run the App:
+	```
+	streamlit run app.py
+	```
 
-    `streamlit run app.py`
+2. Access website at http://localhost:8501
+
+## Project Status
+Project is: Ongoing
+
+## Room for Improvement
+- Improve upon design
+
+## Acknowledgements
+
+
+Nama : Marvel Pangondian</br>
+NIM : 13522075 </br>
+
+Nama : Muhamad Rafli Rasyiidin</br>
+NIM : 13522088 </br>
+
+Nama : Steven Tjhia</br>
+NIM : 13522103 </br>
+</br>
+

@@ -403,8 +403,6 @@ with tab1:
         fig.update_layout(height=400)
         st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("Averages by Stress Level")
-
     # Define the metrics to compare
     metrics = [
         "Study_Hours_Per_Day",
@@ -419,20 +417,102 @@ with tab1:
         id_vars="Stress_Level", var_name="Metric", value_name="Value"
     )
 
-    # Plot with Plotly Express
-    fig = px.bar(
-        melted_df,
-        x="Stress_Level",
-        y="Value",
-        color="Stress_Level",
-        facet_col="Metric",
-        category_orders=category_orders_stress,
-        color_discrete_map=color_discrete_map_stress,
-        title="Average Metrics by Stress Level",
+    st.subheader("Averages by Stress Level")
+
+    # Calculate averages by stress level for all metrics
+    avg_by_stress = (
+        filtered_df.groupby("Stress_Level")[
+            [
+                "Study_Hours_Per_Day",
+                "Sleep_Hours_Per_Day",
+                "GPA",
+                "Work_Life_Balance_Score",
+            ]
+        ]
+        .mean()
+        .reset_index()
     )
 
-    fig.update_layout(height=400, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    # First Row: Study Hours and Sleep Hours
+    col1, col2 = st.columns(2)
+
+    with col1:
+        # Study Hours Bar Chart
+        fig_study = px.bar(
+            avg_by_stress,
+            x="Stress_Level",
+            y="Study_Hours_Per_Day",
+            color="Stress_Level",
+            category_orders=category_orders_stress,
+            color_discrete_map=color_discrete_map_stress,
+            title="Study Hours Per Day by Stress Level",
+            text="Study_Hours_Per_Day",
+        )
+
+        fig_study.update_traces(texttemplate="%{text:.1f}h", textposition="outside")
+        fig_study.update_layout(height=400, showlegend=False)
+        fig_study.update_yaxes(title_text="Hours per Day")
+
+        st.plotly_chart(fig_study, use_container_width=True)
+
+    with col2:
+        # Sleep Hours Bar Chart
+        fig_sleep = px.bar(
+            avg_by_stress,
+            x="Stress_Level",
+            y="Sleep_Hours_Per_Day",
+            color="Stress_Level",
+            category_orders=category_orders_stress,
+            color_discrete_map=color_discrete_map_stress,
+            title="Sleep Hours Per Day by Stress Level",
+            text="Sleep_Hours_Per_Day",
+        )
+
+        fig_sleep.update_traces(texttemplate="%{text:.1f}h", textposition="outside")
+        fig_sleep.update_layout(height=400, showlegend=False)
+        fig_sleep.update_yaxes(title_text="Hours per Day")
+
+        st.plotly_chart(fig_sleep, use_container_width=True)
+
+    # Second Row: GPA and Work-Life Balance Score
+    col3, col4 = st.columns(2)
+
+    with col3:
+        # GPA Bar Chart
+        fig_gpa = px.bar(
+            avg_by_stress,
+            x="Stress_Level",
+            y="GPA",
+            color="Stress_Level",
+            category_orders=category_orders_stress,
+            color_discrete_map=color_discrete_map_stress,
+            title="GPA by Stress Level",
+            text="GPA",
+        )
+
+        fig_gpa.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+        fig_gpa.update_layout(height=400, showlegend=False)
+        fig_gpa.update_yaxes(title_text="GPA", range=[2.0, 4.0])
+        st.plotly_chart(fig_gpa, use_container_width=True)
+
+    with col4:
+        # Work-Life Balance Score Bar Chart
+        fig_balance = px.bar(
+            avg_by_stress,
+            x="Stress_Level",
+            y="Work_Life_Balance_Score",
+            color="Stress_Level",
+            category_orders=category_orders_stress,
+            color_discrete_map=color_discrete_map_stress,
+            title="Work-Life Balance Score by Stress Level",
+            text="Work_Life_Balance_Score",
+        )
+
+        fig_balance.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+        fig_balance.update_layout(height=400, showlegend=False)
+        fig_balance.update_yaxes(title_text="Balance Score", range=[0, 1.0])
+
+        st.plotly_chart(fig_balance, use_container_width=True)
 
 with tab2:
     st.subheader("🔗 Correlation Analysis")
@@ -1421,7 +1501,9 @@ with col3:
     st.markdown("**ℹ️ About**")
     st.markdown("• Dashboard: Student Life Balance Analytics")
     st.markdown("• Framework: Streamlit + Plotly")
-    st.markdown("• Created by Marvel Pangondian, Steven Tjhia, and Muhamad Rafli Rasyiidin")
+    st.markdown(
+        "• Created by Marvel Pangondian, Steven Tjhia, and Muhamad Rafli Rasyiidin"
+    )
 
 st.markdown(
     '<div style="text-align: center; color: #666; padding: 1rem;">'

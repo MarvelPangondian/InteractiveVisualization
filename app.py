@@ -892,7 +892,9 @@ with tab4:
                             range=[0, 1],
                             tickvals=[0, 0.25, 0.5, 0.75, 1],
                             ticktext=["0%", "25%", "50%", "75%", "100%"],
-                        )
+                            tickfont=dict(color="white", size=10),
+                        ),
+                        bgcolor="#7F8CAA"
                     ),
                     showlegend=True,
                     title="Student Profile Comparison",

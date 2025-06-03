@@ -650,10 +650,8 @@ with tab3:
                 num_students
             )
 
-            # Create enhanced stacked bar chart
+            # Create enhanced stacked bar chart with consistent colors
             fig = go.Figure()
-
-            colors = ["#1f77b4", "#17becf", "#2ca02c", "#bcbd22", "#ff7f0e"]
 
             for col in available_time_cols:
                 fig.add_trace(
@@ -662,7 +660,7 @@ with tab3:
                         x=sorted_df[col],
                         name=col.replace("_", " ").replace("Per Day", "").title(),
                         orientation="h",
-                        marker_color=activity_colors.get(col, "#888"),  # fallback: gray
+                        marker_color=activity_colors.get(col, "#888"),
                         hovertemplate=f'<b>%{{y}}</b><br>{col.replace("_", " ")}: %{{x:.1f}} hours<extra></extra>',
                     )
                 )
@@ -688,30 +686,42 @@ with tab3:
 
             st.plotly_chart(fig, use_container_width=True)
 
-            # time distribution pie chart
             avg_time = sorted_df[available_time_cols].mean()
             total_tracked = avg_time.sum()
 
+            # Create ordered data for pie chart
+            pie_labels = []
+            pie_values = []
+            pie_colors = []
+            
+            for col_name in available_time_cols:
+                pie_labels.append(
+                    col_name.replace("_", " ").replace("Per Day", "").title()
+                )
+                pie_values.append(avg_time[col_name])
+                pie_colors.append(activity_colors.get(col_name, "#888"))
+
             if total_tracked < 24:
-                avg_time["Other/Free Time"] = 24 - total_tracked
+                pie_labels.append("Other/Free Time")
+                pie_values.append(24 - total_tracked)
+                pie_colors.append("#CCCCCC")
 
-            # Create donut chart
-            pie_labels = [
-                name.replace("_", " ").replace("Per Day", "").title()
-                for name in avg_time.index
-            ]
-            pie_colors = [activity_colors.get(col, "#888") for col in avg_time.index]
-
-            fig = px.pie(
-                values=avg_time.values,
-                names=pie_labels,
-                title="Average Daily Time Distribution",
-                hole=0.4,
-                color_discrete_sequence=pie_colors,
+            fig = go.Figure(
+                data=[
+                    go.Pie(
+                        labels=pie_labels,
+                        values=pie_values,
+                        hole=0.4,
+                        marker=dict(colors=pie_colors),
+                        textposition="inside",
+                        textinfo="percent+label",
+                    )
+                ]
             )
 
-            fig.update_traces(textposition="inside", textinfo="percent+label")
-            fig.update_layout(height=500)
+            fig.update_layout(
+                title="Average Daily Time Distribution", height=500, showlegend=True
+            )
 
             st.plotly_chart(fig, use_container_width=True)
 
@@ -894,7 +904,7 @@ with tab4:
                             ticktext=["0%", "25%", "50%", "75%", "100%"],
                             tickfont=dict(color="white", size=10),
                         ),
-                        bgcolor="#7F8CAA"
+                        bgcolor="#7F8CAA",
                     ),
                     showlegend=True,
                     title="Student Profile Comparison",

@@ -450,7 +450,7 @@ with tab1:
         )
 
         fig_study.update_traces(texttemplate="%{text:.1f}h", textposition="outside")
-        fig_study.update_layout(height=400, showlegend=False)
+        fig_study.update_layout(height=600, showlegend=False)
         fig_study.update_yaxes(title_text="Hours per Day")
 
         st.plotly_chart(fig_study, use_container_width=True)
@@ -469,7 +469,7 @@ with tab1:
         )
 
         fig_sleep.update_traces(texttemplate="%{text:.1f}h", textposition="outside")
-        fig_sleep.update_layout(height=400, showlegend=False)
+        fig_sleep.update_layout(height=600, showlegend=False)
         fig_sleep.update_yaxes(title_text="Hours per Day")
 
         st.plotly_chart(fig_sleep, use_container_width=True)
@@ -491,7 +491,7 @@ with tab1:
         )
 
         fig_gpa.update_traces(texttemplate="%{text:.2f}", textposition="outside")
-        fig_gpa.update_layout(height=400, showlegend=False)
+        fig_gpa.update_layout(height=600, showlegend=False)
         fig_gpa.update_yaxes(title_text="GPA", range=[2.0, 4.0])
         st.plotly_chart(fig_gpa, use_container_width=True)
 
@@ -509,7 +509,7 @@ with tab1:
         )
 
         fig_balance.update_traces(texttemplate="%{text:.2f}", textposition="outside")
-        fig_balance.update_layout(height=400, showlegend=False)
+        fig_balance.update_layout(height=600, showlegend=False)
         fig_balance.update_yaxes(title_text="Balance Score", range=[0, 1.0])
 
         st.plotly_chart(fig_balance, use_container_width=True)

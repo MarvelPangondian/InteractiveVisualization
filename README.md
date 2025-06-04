@@ -10,6 +10,7 @@
   - [Usage](#usage)
   - [Project Status](#project-status)
   - [Room for Improvement](#room-for-improvement)
+  - [Deployment](#deployment)
   - [Acknowledgements](#acknowledgements)
 
 ## General Information
@@ -55,8 +56,10 @@ Project is: Ongoing
 ## Room for Improvement
 - Improve upon design
 
-## Acknowledgements
+## Deployment
+Check out our dashboard [here](https://13522075-13522088-13522103.streamlit.app/)
 
+## Acknowledgements
 
 Nama : Marvel Pangondian</br>
 NIM : 13522075 </br>
